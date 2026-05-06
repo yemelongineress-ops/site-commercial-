@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INERESS TIDO SARL</title>
+
+<script src="https://checkout.flutterwave.com/v3.js"></script>
+
+<style>
+body {font-family:Arial;margin:0;background:#f5f5f5;}
+header {background:black;color:white;text-align:center;padding:20px;}
+.container {display:flex;flex-wrap:wrap;justify-content:center;}
+.produit {background:white;margin:10px;padding:10px;width:220px;border-radius:10px;text-align:center;}
+button {background:black;color:white;padding:8px;border:none;margin:5px;}
+.panier {position:fixed;top:10px;right:10px;background:white;padding:10px;border-radius:10px;}
+.form {text-align:center;margin:10px;}
+input, select {padding:8px;margin:5px;width:200px;}
+</style>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* 🔴 CONFIG FIREBASE */
+const firebaseConfig = {
+  apiKey: "TON_API_KEY",
+  authDomain: "TON_AUTH_DOMAIN",
+  projectId: "TON_PROJECT_ID",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.panier = [];
+
+window.add = (nom, prix) => {
+    panier.push({nom, prix});
+    document.getElementById("count").innerText = panier.length;
+};
+
+window.payer = (total) => {
+FlutterwaveCheckout({
+    public_key: "TA_PUBLIC_KEY",
+    tx_ref: "TX_" + Date.now(),
+    amount: total,
+    currency: "XAF",
+    payment_options: "mobilemoney",
+    customer: {
+        email: "client@gmail.com",
+        phonenumber: document.getElementById("tel").value,
+        name: document.getElementById("nom").value,
+    },
+    customizations: {
+        title: "INERESS TIDO SARL",
+        description: "Paiement commande",
+    },
+    callback: function() {
+        alert("Paiement réussi !");
+    }
+});
+};
+
+window.commander = async () => {
+
+let nom = document.getElementById("nom").value;
+let tel = document.getElementById("tel").value;
+let adresse = document.getElementById("adresse").value;
+let ville = document.getElementById("ville").value;
+
+if(panier.length === 0){
+    alert("Panier vide !");
+    return;
+}
+
+let total = 0;
+let msg = "Commande:%0A";
+
+panier.forEach(p=>{
+    msg += p.nom + " - " + p.prix + " FCFA%0A";
+    total += p.prix;
+});
+
+/* LIVRAISON */
+if(ville === "Yaoundé") total += 2000;
+else total += 5000;
+
+msg += "%0ATotal: " + total + " FCFA%0A";
+msg += "Nom: " + nom + "%0A";
+msg += "Tel: " + tel + "%0A";
+msg += "Adresse: " + adresse;
+
+/* FIREBASE */
+await addDoc(collection(db, "commandes"), {
+    nom, tel, adresse, ville, panier, total, date:new Date()
+});
+
+/* WHATSAPP */
+window.open("https://wa.me/237659330336?text=" + msg);
+
+/* PAIEMENT */
+payer(total);
+};
+</script>
+
+</head>
+
+<body>
+
+<header>
+<h1>📱 INERESS TIDO SARL</h1>
+<p>WhatsApp : 659330336</p>
+</header>
+
+<div class="form">
+<input id="nom" placeholder="Nom"><br>
+<input id="tel" placeholder="Téléphone"><br>
+<input id="adresse" placeholder="Adresse"><br>
+
+<select id="ville">
+<option>Yaoundé</option>
+<option>Douala</option>
+<option>Autre</option>
+</select>
+</div>
+
+<div class="panier">
+🛒 <span id="count">0</span><br>
+<button onclick="commander()">Commander</button>
+</div>
+
+<div class="container">
+
+<div class="produit">
+<h3>iPhone 13</h3>
+<p>350 000 FCFA</p>
+<button onclick="add('iPhone 13',350000)">Ajouter</button>
+</div>
+
+<div class="produit">
+<h3>Samsung S21</h3>
+<p>300 000 FCFA</p>
+<button onclick="add('Samsung S21',300000)">Ajouter</button>
+</div>
+
+<div class="produit">
+<h3>Google Pixel</h3>
+<p>280 000 FCFA</p>
+<button onclick="add('Google Pixel',280000)">Ajouter</button>
+</div>
+
+</div>
+
+</body>
+</html>
